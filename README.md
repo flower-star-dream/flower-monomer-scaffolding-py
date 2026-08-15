@@ -1,0 +1,135 @@
+# flower 单体应用脚手架（flower-monomer-scaffolding-py）
+
+> 基于 [flower-web-infrastructure](../flower-web-infrastructure) 的单体应用脚手架：可快速复制的业务项目模板，开箱即用。
+
+|          |                                                 |
+| -------- | ----------------------------------------------- |
+| 当前版本 | v0.1.0                                          |
+| Python   | >= 3.10                                         |
+| 依赖框架 | flower-web-infrastructure（本地 editable 默认） |
+| 数据库   | MySQL（默认）/ SQLite（测试与轻量场景）         |
+
+## 1. 目录结构
+
+```
+flower-monomer-scaffolding-py/
+├── application.yml               # 应用配置（项目根，MySQL 默认；敏感值用 ${ENV} 占位符）
+├── .env.example                  # 本地敏感配置模板（复制为 .env 填写；.env 不提交仓库）
+├── pyproject.toml                # 项目配置（框架依赖方式二选一，见注释）
+├── alembic/                      # Alembic 权威迁移（env.py 已接入业务模型）
+│   └── versions/0001_user_init.py
+├── db/                           # 手工 SQL（规范 §13.2，供 DBA / 参考）
+│   ├── init/ddl|dml/             # 基线脚本（001-user-init-ddl/dml.sql）
+│   └── versions/                 # 增量脚本（DDL/DML 同版本成对）
+├── docs/使用说明.md              # 脚手架使用说明
+├── src/app/                      # 业务包（复制后按业务改名）
+│   ├── main.py                   # 启动入口（create_app + 路由注册）
+│   ├── api/v1/                   # 接口层（Controller）
+│   ├── service/                  # 服务层（Service）
+│   ├── repository/               # 仓储层（Repository）
+│   ├── model/                    # ORM 模型（Model，继承 web_infra.Base）
+│   ├── schema/                   # 请求/响应 DTO
+│   └── constants/                # 业务常量（权限点 / 状态 / 缓存 Key）
+├── tests/                        # pytest 测试（SQLite 内存库，不依赖外部 MySQL）
+├── Dockerfile                    # 业务镜像（FROM 框架基础镜像）
+└── .github/workflows/ci.yml      # CI：静态检查 + 单元测试
+```
+
+## 2. 快速开始
+
+### 2.1 创建虚拟环境并安装依赖
+
+```bash
+# 1) 创建虚拟环境（Windows）
+python -m venv .venv
+.venv\Scripts\activate
+
+# 2) 安装框架依赖（本地 editable，见 pyproject.toml 注释；亦可改 Git 方式）
+pip install -e "f:\baseProject\flower-web-infrastructure[mysql,redis,migrate]"
+
+# 3) 安装脚手架自身（业务包 app + 开发依赖 pytest/pyright 等）
+pip install -e ".[dev]"
+```
+
+> 框架发布到远程仓库后，可改走 Git 依赖：取消 [pyproject.toml](pyproject.toml) 中 `dependencies` 的注释行（`flower-web-infrastructure[mysql,redis,migrate] @ git+...`）。
+
+### 2.2 初始化数据库
+
+```bash
+# 建库（按 application.yml 的 mysql 配置）
+# 方式一：Alembic 迁移（权威）
+set DATABASE_URL=mysql+aiomysql://root:密码@127.0.0.1:3306/flower_monomer
+alembic upgrade head
+
+# 方式二：手工执行基线脚本（DBA / 非 Python 环境）
+#   db/init/ddl/001-user-init-ddl.sql + db/init/dml/001-user-init-dml.sql
+```
+
+### 2.3 启动
+
+```bash
+# 在项目根目录启动（配置读取依赖工作目录）
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+验证：
+
+- 健康检查：`curl http://127.0.0.1:8000/health/live`
+- 接口文档：`http://127.0.0.1:8000/docs`
+- 指标：`curl http://127.0.0.1:8000/metrics`
+
+## 3. 示例业务模块（用户管理）
+
+脚手架内置用户管理示例，演示框架核心能力（统一响应 / 错误码 / ORM 会话 / 密码加密 / 缓存防穿透 / 分页）：
+
+| 方法  | 路径                                 | 说明                                    |
+| ----- | ------------------------------------ | --------------------------------------- |
+| GET   | `/v1/users/{user_id}`              | 查询用户详情（带缓存 + 空值占位防穿透） |
+| GET   | `/v1/users?page_no=1&page_size=10` | 分页查询（PageResult 结构）             |
+| POST  | `/v1/users`                        | 创建用户（用户名查重 + bcrypt 加密）    |
+| PATCH | `/v1/users/{user_id}/status`       | 更新用户状态（写后失效缓存）            |
+
+接口统一返回 `Result`（`{ code, message, data }`）；业务异常（如用户不存在）经全局异常处理器自动转为统一错误响应。
+
+## 4. 数据库变更
+
+- **权威变更工具**：Alembic（`alembic/versions/`）。`alembic/env.py` 已导入业务模型（`app.model`），`autogenerate` 可对比模型与库表生成迁移：
+
+```bash
+alembic revision --autogenerate -m "add_xxx_table"
+alembic upgrade head
+```
+
+- **手工 SQL 参考**：基线 `db/init/`（禁止回改）、增量 `db/versions/`（`V{版本}-{模块}-{描述}-ddl/dml.sql` 成对，涉及存量数据语义变更必须提供幂等 DML）。
+
+## 5. 测试与质量
+
+```bash
+.venv\Scripts\python.exe -m pytest                    # 全部测试（SQLite 内存库，无需 MySQL）
+.venv\Scripts\python.exe -m pytest tests/test_user_module.py -q
+.venv\Scripts\pyright.exe                             # 静态类型检查（新增代码 0 错误）
+```
+
+## 6. Docker
+
+```bash
+# 先构建框架基础镜像
+docker build -t flower-web-infrastructure:latest f:\baseProject\flower-web-infrastructure
+
+# 再构建脚手架业务镜像
+docker build -t flower-monomer-scaffolding:latest .
+
+docker run -d -p 8000:8000 -v "$(pwd)/application.yml:/app/application.yml" flower-monomer-scaffolding:latest
+```
+
+## 7. 扩展新业务模块
+
+1. `model/` 新增实体模型（继承 `web_infra.Base`），在 `model/__init__.py` 导出；
+2. `schema/` 新增请求/响应 DTO；
+3. `repository/` 新增仓储（统一走 `db.orm_session()`）；
+4. `service/` 新增服务（错误码 / 日志 / 缓存）；
+5. `api/v1/` 新增控制器，注册到 `api/v1/__init__.py` 的 `api_router`；
+6. `main.py` 注册 `api_router`；`alembic/env.py` 已导入 `app.model`，新模型自动纳入迁移对比；
+7. 编写 Alembic 迁移 + 配套 DDL/DML + 测试。
+
+详细说明见 [docs/使用说明.md](docs/使用说明.md)。

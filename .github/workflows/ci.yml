@@ -1,0 +1,46 @@
+# =====================================================================
+# flower-monomer-scaffolding CI/CD（GitHub Actions）
+# @Author: 花海
+# @Date: 2026/08/15 14:30
+# @Description: 推送 main / PR 时执行：静态类型检查（pyright）+ 单元测试（pytest 硬性门禁）。
+#               框架依赖以本地 editable 方式安装（先检出框架仓库；框架发布远程仓库后
+#               可改用 pyproject.toml 注释中的 Git 依赖方式，简化本文件）。
+# =====================================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: 静态检查 + 单元测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出脚手架
+        uses: actions/checkout@v4
+
+      - name: 检出框架仓库（本地 editable 依赖方式）
+        uses: actions/checkout@v4
+        with:
+          repository: <org>/flower-web-infrastructure
+          path: flower-web-infrastructure
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: 安装框架依赖（editable）
+        run: pip install -e ./flower-web-infrastructure[mysql,redis,migrate]
+
+      - name: 安装脚手架依赖（dev）
+        run: pip install -e ".[dev]"
+
+      - name: 静态类型检查（pyright）
+        run: pyright
+
+      - name: 单元测试（pytest）
+        run: pytest -q

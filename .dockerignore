@@ -1,0 +1,22 @@
+# 运行时数据与本地文件
+data/
+*.db
+*.sqlite3
+
+# 虚拟环境
+.venv/
+venv/
+
+# 测试与缓存
+.pytest_cache/
+.coverage
+__pycache__/
+*.pyc
+
+# 构建产物
+build/
+dist/
+*.egg-info/
+
+# 环境文件
+.env
