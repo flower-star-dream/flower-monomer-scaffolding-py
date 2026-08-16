@@ -22,6 +22,7 @@ flower-monomer-scaffolding-py/
 │   ├── init/ddl|dml/             # 基线脚本（001-user-init-ddl/dml.sql）
 │   └── versions/                 # 增量脚本（DDL/DML 同版本成对）
 ├── docs/使用说明.md              # 脚手架使用说明
+├── docs/CI-CD.md                # CI/CD 流水线文档（触发时机 / 门禁 / 镜像推送）
 ├── src/app/                      # 业务包（复制后按业务改名）
 │   ├── main.py                   # 启动入口（create_app + 路由注册）
 │   ├── api/v1/                   # 接口层（Controller）
@@ -32,7 +33,7 @@ flower-monomer-scaffolding-py/
 │   └── constants/                # 业务常量（权限点 / 状态 / 缓存 Key）
 ├── tests/                        # pytest 测试（SQLite 内存库，不依赖外部 MySQL）
 ├── Dockerfile                    # 业务镜像（FROM 框架基础镜像）
-└── .github/workflows/ci.yml      # CI：静态检查 + 单元测试
+└── .github/workflows/ci.yml      # CI/CD：静态检查 + 单测 + Docker 构建/扫描/冒烟/推送
 ```
 
 ## 2. 快速开始
@@ -121,6 +122,8 @@ docker build -t flower-monomer-scaffolding:latest .
 
 docker run -d -p 8000:8000 -v "$(pwd)/application.yml:/app/application.yml" flower-monomer-scaffolding:latest
 ```
+
+> CI 中业务镜像由流水线自动构建并推送 GHCR（`ghcr.io/flower-star-dream/flower-monomer-scaffolding-py`），触发时机 / 门禁 / 标签规范见 [docs/CI-CD.md](docs/CI-CD.md)。
 
 ## 7. 扩展新业务模块
 

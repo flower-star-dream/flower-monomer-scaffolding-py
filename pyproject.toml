@@ -17,7 +17,7 @@ keywords = ["web", "backend", "fastapi", "scaffolding", "monolith"]
 #   方式一（本地开发，默认）：在脚手架虚拟环境内执行
 #     pip install -e "f:\baseProject\flower-web-infrastructure[all]"
 #   方式二（Git 依赖，框架已发布远程仓库时）：取消下方注释并修改仓库地址
-#     "flower-web-infrastructure[mysql,redis,migrate] @ git+https://github.com/<org>/flower-web-infrastructure.git@v0.2.0"
+#     "flower-web-infrastructure[mysql,redis,migrate] @ git+https://github.com/flower-star-dream/flower-web-infrastructure.git@v0.2.0"
 # 说明：脚手架业务代码通过 `from web_infra import ...` 使用框架能力，
 #       框架为基础依赖（由上述命令安装），此处不再重复声明。
 # =====================================================================
