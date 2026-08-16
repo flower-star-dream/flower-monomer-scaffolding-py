@@ -2,7 +2,7 @@
 
 > 本文档说明本项目的持续集成（CI）与持续交付（CD）流水线：触发时机、前置条件、流水线结构、门禁策略、本地复现与镜像推送规范。
 >
-> - 上位框架：[flower-web-infrastructure CI/CD 文档](../flower-web-infrastructure/docs/CI-CD.md)（框架流水线负责构建/推送框架基础镜像）
+> - 上位框架：[flower-web-infrastructure CI/CD 文档](https://github.com/flower-star-dream/flower-web-infrastructure/blob/main/docs/CI-CD.md)（框架流水线负责构建/推送框架基础镜像）
 > - 工作流文件：[`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 > - 平台：GitHub Actions（组织 `flower-star-dream`）
 > - 关联文件：`Dockerfile`、`.dockerignore`
@@ -56,9 +56,9 @@ CI
 | 步骤 | 命令 | 行为 |
 | ---- | ---- | ---- |
 | 检出脚手架 | `actions/checkout@v4` | 拉取本仓库代码 |
-| 检出框架仓库 | `actions/checkout@v4`（`repository: flower-star-dream/flower-web-infrastructure`） | 框架依赖以本地 editable 方式安装（跨仓库访问见 [1.2](#12-前置条件跨仓库访问)） |
+| 检出框架仓库 | `actions/checkout@v4`（`repository: flower-star-dream/flower-web-infrastructure`） | CI 远程拉取框架源码，随后以 editable 方式安装（跨仓库访问见 [1.2](#12-前置条件跨仓库访问)） |
 | 安装 Python | `actions/setup-python@v5` | Python 3.11，启用 pip 缓存 |
-| 安装框架依赖 | `pip install -e ./flower-web-infrastructure[mysql,redis,migrate]` | 与 [使用说明 §1](使用说明.md#1-安装) 本地安装方式一致 |
+| 安装框架依赖 | `pip install -e ./flower-web-infrastructure[mysql,redis,migrate]` | 框架由 CI 检出（远程 git）后安装，与 [使用说明 §1](使用说明.md#1-安装) 的安装方式等效 |
 | 安装脚手架依赖 | `pip install -e ".[dev]"` | 业务包 + dev 依赖（pytest / pytest-asyncio / pytest-cov / httpx / pyright） |
 | 静态类型检查 | `pyright` | 新增代码必须 0 错误（既有基线容忍见框架文档 §3） |
 | 单元测试 | `pytest -q` | 硬性门禁：任一失败即中断流水线，镜像不构建 |
@@ -104,8 +104,8 @@ CI
 在提交前执行与 CI 相同的检查：
 
 ```bash
-# 安装依赖（与使用说明 §1 一致）
-.venv\Scripts\python.exe -m pip install -e "f:\baseProject\flower-web-infrastructure[mysql,redis,migrate]"
+# 安装依赖（默认 Git 远程拉取框架，与使用说明 §1 一致；本机已 clone 框架时可改用本地 editable）
+.venv\Scripts\python.exe -m pip install "flower-web-infrastructure[mysql,redis,migrate] @ git+https://github.com/flower-star-dream/flower-web-infrastructure.git"
 .venv\Scripts\python.exe -m pip install -e ".[dev]"
 
 # 静态类型检查
@@ -114,8 +114,9 @@ CI
 # 单元测试
 .venv\Scripts\python.exe -m pytest
 
-# 镜像构建与冒烟（本机需安装 Docker）
-docker build -t flower-web-infrastructure:latest f:\baseProject\flower-web-infrastructure
+# 镜像构建与冒烟（本机需安装 Docker；框架基础镜像从 GHCR 拉取）
+docker pull ghcr.io/flower-star-dream/flower-web-infrastructure:latest
+docker tag ghcr.io/flower-star-dream/flower-web-infrastructure:latest flower-web-infrastructure:latest
 docker build -t flower-monomer-scaffolding:ci .
 docker run -d --name scaffold-smoke -p 18001:8000 flower-monomer-scaffolding:ci
 curl http://127.0.0.1:18001/health/live
@@ -124,7 +125,7 @@ docker rm -f scaffold-smoke
 
 ## 6. 镜像保留与清理
 
-> 规范 §20.5：镜像保留策略 + 悬空清理 + 回收审计属**运维配置**（框架边界），CI 负责按标签规范推送，仓库侧保留规则与清理任务由运维按环境配置。基线建议与配置入口见 [框架 CI/CD 文档 §5](../flower-web-infrastructure/docs/CI-CD.md#5-镜像保留与清理)，本仓库按同一策略执行。
+> 规范 §20.5：镜像保留策略 + 悬空清理 + 回收审计属**运维配置**（框架边界），CI 负责按标签规范推送，仓库侧保留规则与清理任务由运维按环境配置。基线建议与配置入口见 [框架 CI/CD 文档 §5](https://github.com/flower-star-dream/flower-web-infrastructure/blob/main/docs/CI-CD.md#5-镜像保留与清理)，本仓库按同一策略执行。
 
 ## 7. 维护指南
 

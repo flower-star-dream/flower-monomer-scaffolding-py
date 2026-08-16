@@ -5,8 +5,9 @@
 # @Description: 业务镜像基于框架基础镜像（flower-web-infrastructure:latest）构建：
 #               复制业务代码与配置后以 python -m uvicorn 启动（含 /health/live /health/ready /metrics）。
 #               数据库/缓存依赖（MySQL/SQLite/Redis/Alembic）由框架基础镜像内置（min-monolith + migrate extras）。
-#               构建前需先构建框架基础镜像：
-#               docker build -t flower-web-infrastructure:latest f:\baseProject\flower-web-infrastructure
+#               构建前需先拉取框架基础镜像（GHCR）并打本地标签：
+#               docker pull ghcr.io/flower-star-dream/flower-web-infrastructure:latest
+#               docker tag ghcr.io/flower-star-dream/flower-web-infrastructure:latest flower-web-infrastructure:latest
 # =====================================================================
 FROM flower-web-infrastructure:latest
 

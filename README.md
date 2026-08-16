@@ -1,8 +1,14 @@
 # flower 单体应用脚手架（flower-monomer-scaffolding-py）
 
-> 基于 [flower-web-infrastructure](../flower-web-infrastructure) 的单体应用脚手架：可快速复制的业务项目模板，开箱即用。
+[![version](https://img.shields.io/badge/version-v0.1.0-blue)](https://github.com/flower-star-dream/flower-monomer-scaffolding-py)
+[![python](https://img.shields.io/badge/python-3.10%2B-blue)](https://github.com/flower-star-dream/flower-monomer-scaffolding-py)
+[![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/flower-star-dream/flower-monomer-scaffolding-py)
+[![framework](https://img.shields.io/badge/framework-flower--web--infrastructure-blue)](https://github.com/flower-star-dream/flower-web-infrastructure)
+[![CI](https://img.shields.io/github/actions/workflow/status/flower-star-dream/flower-monomer-scaffolding-py/ci.yml?label=CI&logo=github)](https://github.com/flower-star-dream/flower-monomer-scaffolding-py/actions)
 
-|          |                                                 |
+> 基于 [flower-web-infrastructure](https://github.com/flower-star-dream/flower-web-infrastructure) 的单体应用脚手架：可快速复制的业务项目模板，开箱即用。
+
+| 项目     | 值                                              |
 | -------- | ----------------------------------------------- |
 | 当前版本 | v0.1.0                                          |
 | Python   | >= 3.10                                         |
@@ -36,25 +42,36 @@ flower-monomer-scaffolding-py/
 └── .github/workflows/ci.yml      # CI/CD：静态检查 + 单测 + Docker 构建/扫描/冒烟/推送
 ```
 
-## 2. 快速开始
+## 2. 从脚手架创建新项目
 
-### 2.1 创建虚拟环境并安装依赖
+本脚手架用于快速派生业务项目，支持两种方式（详细步骤见 [docs/创建新项目.md](docs/创建新项目.md)）：
+
+- **方式一（推荐）**：GitHub 打开脚手架仓库 → **Use this template** 创建新仓库（GitHub 原生生成全新 git 历史，不继承脚手架提交）→ clone 到本地 → 运行内置脚本重命名：
+
+  ```bash
+  python scripts/new_project.py new my-project
+  ```
+- **方式二（手动）**：`git clone` 脚手架 → `rm -rf .git` → `git init`（新仓库用新 git，不被脚手架历史覆盖）→ 脚本重命名。
+
+脚本自动替换项目名 / 仓库名 / Python 包名 / 数据库名 / 版本 / 作者，覆盖生成初始化 README，并删除脚手架专属内容（`scripts/` 等）。
+
+## 3. 快速开始
+
+### 3.1 创建虚拟环境并安装依赖
 
 ```bash
 # 1) 创建虚拟环境（Windows）
 python -m venv .venv
 .venv\Scripts\activate
 
-# 2) 安装框架依赖（本地 editable，见 pyproject.toml 注释；亦可改 Git 方式）
-pip install -e "f:\baseProject\flower-web-infrastructure[mysql,redis,migrate]"
+# 2) 安装框架依赖（默认 Git 远程拉取，不假设本机有框架仓库；本机已 clone 框架时可用 pyproject.toml 注释中的方式二）
+pip install "flower-web-infrastructure[mysql,redis,migrate] @ git+https://github.com/flower-star-dream/flower-web-infrastructure.git"
 
 # 3) 安装脚手架自身（业务包 app + 开发依赖 pytest/pyright 等）
 pip install -e ".[dev]"
 ```
 
-> 框架发布到远程仓库后，可改走 Git 依赖：取消 [pyproject.toml](pyproject.toml) 中 `dependencies` 的注释行（`flower-web-infrastructure[mysql,redis,migrate] @ git+...`）。
-
-### 2.2 初始化数据库
+### 3.2 初始化数据库
 
 ```bash
 # 建库（按 application.yml 的 mysql 配置）
@@ -66,7 +83,7 @@ alembic upgrade head
 #   db/init/ddl/001-user-init-ddl.sql + db/init/dml/001-user-init-dml.sql
 ```
 
-### 2.3 启动
+### 3.3 启动
 
 ```bash
 # 在项目根目录启动（配置读取依赖工作目录）
@@ -114,18 +131,19 @@ alembic upgrade head
 ## 6. Docker
 
 ```bash
-# 先构建框架基础镜像
-docker build -t flower-web-infrastructure:latest f:\baseProject\flower-web-infrastructure
+# 1) 拉取框架基础镜像（GHCR 远程拉取，不假设本机构建过框架镜像）
+docker pull ghcr.io/flower-star-dream/flower-web-infrastructure:latest
+docker tag ghcr.io/flower-star-dream/flower-web-infrastructure:latest flower-web-infrastructure:latest
 
-# 再构建脚手架业务镜像
+# 2) 构建脚手架业务镜像
 docker build -t flower-monomer-scaffolding:latest .
 
 docker run -d -p 8000:8000 -v "$(pwd)/application.yml:/app/application.yml" flower-monomer-scaffolding:latest
 ```
 
-> CI 中业务镜像由流水线自动构建并推送 GHCR（`ghcr.io/flower-star-dream/flower-monomer-scaffolding-py`），触发时机 / 门禁 / 标签规范见 [docs/CI-CD.md](docs/CI-CD.md)。
+> CI 中业务镜像由流水线自动构建并推送 GHCR（`ghcr.io/flower-star-dream/flower-monomer-scaffolding-py`）；数据库/缓存依赖（MySQL/SQLite/Redis/Alembic）由框架基础镜像内置（框架 `min-monolith + migrate` extras），业务镜像无需再安装。仅修改文档/非代码文件（`*.md`、`docs/**`、`LICENSE`、`.gitignore`、`.env.example`、`db/**`、`data/**`）时不触发流水线，版本 tag `v*` 无条件触发。触发时机 / 门禁 / 标签规范见 [docs/CI-CD.md](docs/CI-CD.md)。
 
-## 7. 扩展新业务模块
+## 8. 扩展新业务模块
 
 1. `model/` 新增实体模型（继承 `web_infra.Base`），在 `model/__init__.py` 导出；
 2. `schema/` 新增请求/响应 DTO；

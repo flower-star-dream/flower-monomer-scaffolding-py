@@ -9,7 +9,7 @@
 #               PR 只构建/扫描/冒烟、不推送（详见 docs/CI-CD.md）。
 # 前置条件（跨仓库访问，详见 docs/CI-CD.md §1.2）：
 #   1) 框架仓库 flower-star-dream/flower-web-infrastructure 需可被本工作流检出（仓库公开，或配置
-#      PAT 存为 Secrets 并将下方 checkout 的 token 指向它）；框架依赖以本地 editable 方式安装。
+#      PAT 存为 Secrets 并将下方 checkout 的 token 指向它）；框架依赖经检出（远程 git）后以 editable 方式安装。
 #   2) ghcr.io/flower-star-dream/flower-web-infrastructure:latest 需对本仓库可拉取（框架镜像包设置
 #      "Manage Actions access" 授权本仓库，或本仓库配置带 read:packages 的 PAT 用于 GHCR 登录）。
 # =====================================================================
