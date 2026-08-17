@@ -16,9 +16,7 @@ keywords = ["web", "backend", "fastapi", "scaffolding", "monolith"]
 # 框架依赖（flower-web-infrastructure）安装方式（默认远程拉取，不假设本机有框架仓库）：
 #   方式一（Git 依赖，默认）：在脚手架虚拟环境内执行
 #     pip install "flower-web-infrastructure[mysql,redis,migrate] @ git+https://github.com/flower-star-dream/flower-web-infrastructure.git"
-#     固定版本可在 URL 末尾加 @v<版本>（如 @v0.1.0）；框架仓库为私有时需配置凭据。
-#     （经 new 生成项目后，README 安装命令会按组件选择渲染 extras，如 cache=redis 需 [redis]、
-#     mq=rocketmq 需 [rocketmq]、registry/config=nacos 需 [nacos]、storage=minio 需 [storage]）
+#     固定版本可在 URL 末尾加 @v<版本>（如 @v0.2.0）；框架仓库为私有时需配置凭据。
 #   方式二（本地开发，可选）：本机已 clone 框架仓库时，可用 editable 本地安装
 #     pip install -e "f:\baseProject\flower-web-infrastructure[mysql,redis,migrate]"
 # 说明：脚手架业务代码通过 `from web_infra import ...` 使用框架能力，
