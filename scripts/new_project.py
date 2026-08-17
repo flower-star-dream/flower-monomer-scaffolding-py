@@ -65,8 +65,8 @@ TEXT_SUFFIXES: Tuple[str, ...] = (
 )
 TEXT_FILENAMES: Tuple[str, ...] = ("Dockerfile", ".env.example", ".gitignore", ".dockerignore", "LICENSE")
 
-# 遍历时忽略的目录（构建产物 / 版本控制 / 虚拟环境）
-IGNORED_DIRS: Tuple[str, ...] = (".git", "__pycache__", ".venv", ".pytest_cache", ".mypy_cache")
+# 遍历时忽略的目录（构建产物 / 版本控制 / 虚拟环境 / 本地运行数据）
+IGNORED_DIRS: Tuple[str, ...] = (".git", "__pycache__", ".venv", ".pytest_cache", ".mypy_cache", "data", "minio_data")
 
 # 脚手架专属内容（生成新项目时排除：CLI 脚本 / CLI 测试 / 设计文档 / 构建产物 / 模板快照历史）
 TEMPLATE_ONLY_PREFIXES: Tuple[str, ...] = (
@@ -115,7 +115,7 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     new_cmd.add_argument(
         "--components",
         help="组件与实现选择（逗号分隔 name:impl，如 cache:redis,mq:rocketmq,registry:nacos；"
-        "all=全部默认 / none=仅必选组件；缺省时交互式逐个询问，非交互环境默认全部默认值）。"
+        "all=全部默认 / none=仅必选组件；缺省时交互式逐个询问，非交互环境默认最小化（仅必选与形态默认组件，其余按需显式指定））。"
         f"可用组件：{'、'.join(COMPONENTS)}；注册中心禁止内存实现",
     )
     new_cmd.add_argument(
@@ -361,6 +361,8 @@ def _render_readme(names: Dict[str, str]) -> str:
         "custom": "完全自定义（自研 DatabaseSessionInterface）",
     }
     db_label = db_labels.get(names["db_type"], names["db_type"])
+    # 数据库形态展示：非 sqlite 时补充" / SQLite"（轻量/测试备选）；sqlite 本身即 SQLite，避免重复
+    db_cell = db_label if names["db_type"] == "sqlite" else f"{db_label} / SQLite"
     extras = render_extras(names["components"])
     component_rows = "\n".join(
         f"| {COMPONENTS[name]['label']} | {_impl_label(name, names['components'][name])} |"
@@ -382,7 +384,7 @@ def _render_readme(names: Dict[str, str]) -> str:
 | 当前版本 | v{names['version']}                       |
 | Python   | >= 3.10                                   |
 | 依赖框架 | flower-web-infrastructure                 |
-| 数据库   | {db_label} / SQLite                       |
+| 数据库   | {db_cell:<43}|
 
 ## 启用的组件（脚手架生成时选择）
 
@@ -469,7 +471,7 @@ def _prepare_target(names: Dict[str, str]) -> Path:
         PROJECT_ROOT,
         target,
         ignore=shutil.ignore_patterns(
-            ".git", "__pycache__", ".venv", ".pytest_cache", ".mypy_cache", "*.pyc",
+            ".git", "__pycache__", ".venv", ".pytest_cache", ".mypy_cache", "*.pyc", "data", "minio_data",
             *TEMPLATE_ONLY_PREFIXES, *TEMPLATE_ONLY_GLOBS,
         ),
     )
@@ -619,10 +621,11 @@ def _run_upgrade(names: Dict[str, str]) -> Dict[str, List[str]]:
     project_dir = Path(names["project_dir"])
     info = _load_scaffold_info(project_dir)
     params: Dict[str, object] = dict(info["params"])
-    # 组件选择：沿用项目记录（旧版项目无记录时按 params.db_type 派生）；--components 可覆盖
+    # 组件选择：沿用项目记录（旧版项目无记录时按 params.db_type 派生）；
+    # --components 仅覆盖显式指定的组件，未提及组件沿用项目记录（不重置为目录默认）
     components = _project_components(info, params)
     if names["components"] is not None:
-        components = resolve_components(names["components"])
+        components = resolve_components(names["components"], defaults=components)
         if components.get("db") and params.get("db_type") != components["db"]:
             params["db_type"] = components["db"]
     old_ver = str(info.get("scaffold_version") or "")

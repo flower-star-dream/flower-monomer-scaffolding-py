@@ -53,7 +53,12 @@ flower-monomer-scaffolding-py/
   ```
 - **方式二（手动）**：`git clone` 脚手架 → `rm -rf .git` → `git init`（新仓库用新 git，不被脚手架历史覆盖）→ 脚本重命名。
 
-脚本自动替换项目名 / 仓库名 / Python 包名 / 数据库名 / 版本 / 作者，覆盖生成初始化 README，并删除脚手架专属内容（`scripts/` 等）。
+脚本自动替换项目名 / 仓库名 / Python 包名 / 数据库名 / 版本 / 作者，**交互式选择组件与实现**（或 `--components=name:impl,...` 参数跳过，注册中心禁止内存实现），覆盖生成初始化 README，并删除脚手架专属内容（`scripts/` 等）。组件清单与选择规则见 [docs/创建新项目.md](docs/创建新项目.md) 5.5 节。
+
+```bash
+# 交互式逐步选择组件/实现（TTY）；非交互环境用 --components 指定（如 cache:redis,mq:rocketmq）
+python scripts/new_project.py new my-project
+```
 
 ## 3. 快速开始
 
@@ -64,7 +69,8 @@ flower-monomer-scaffolding-py/
 python -m venv .venv
 .venv\Scripts\activate
 
-# 2) 安装框架依赖（默认 Git 远程拉取，不假设本机有框架仓库；本机已 clone 框架时可用 pyproject.toml 注释中的方式二）
+# 2) 安装框架依赖（默认 Git 远程拉取，不假设本机有框架仓库；本机已 clone 框架时可用 pyproject.toml 注释中的方式二；
+#    extras 按脚手架生成时的组件选择而定，如 [mysql,redis,rocketmq,nacos,migrate]）
 pip install "flower-web-infrastructure[mysql,redis,migrate] @ git+https://github.com/flower-star-dream/flower-web-infrastructure.git"
 
 # 3) 安装脚手架自身（业务包 app + 开发依赖 pytest/pyright 等）

@@ -60,6 +60,9 @@ def mini_template(tmp_path: Path) -> Path:
     )
     (root / "scripts" / "keep_me.txt").write_text("scripts 目录应被整体删除\n", encoding="utf-8")
     (root / "README.md").write_text("# flower 单体应用脚手架（flower-monomer-scaffolding-py）\n", encoding="utf-8")
+    # 本地运行产物（gitignore 忽略的 data/ 目录与 SQLite 开发库）：生成新项目时应被排除
+    (root / "data").mkdir()
+    (root / "data" / "app.db").write_bytes(b"SQLite format 3\x00dev-db")
     # 脚手架专属内容：CLI 测试 / 构建产物（生成新项目时应排除）
     (root / "tests" / "test_new_project.py").write_text("assert False  # CLI 测试，业务项目不需要\n", encoding="utf-8")
     (root / "src" / "app" / "demo.egg-info").mkdir()
@@ -190,6 +193,8 @@ class TestEndToEnd:
         # 脚手架专属内容已排除：CLI 测试 / egg-info 构建产物
         assert not (target / "tests" / "test_new_project.py").exists()
         assert not list(target.rglob("*.egg-info"))
+        # 本地运行产物已排除：data/ 目录与开发库不得带入新项目
+        assert not (target / "data").exists()
         # 升级元数据已写入（脚手架类型 / 版本 / 替换参数）
         info = json.loads((target / np.SCAFFOLD_INFO_FILE).read_text(encoding="utf-8"))
         assert info["scaffold"] == "flower-monomer-scaffolding-py"
@@ -203,6 +208,10 @@ class TestEndToEnd:
         )
         yml = (target / "application.yml").read_text(encoding="utf-8")
         assert "type: sqlite" in yml
+        # README 数据库行：sqlite 不重复显示"SQLite（默认） / SQLite"
+        readme = (target / "README.md").read_text(encoding="utf-8")
+        assert "SQLite（默认）" in readme
+        assert "SQLite（默认） / SQLite" not in readme
         # author 替换（迷你模板无 @Author，验证不报错即可；文档类文件头场景由真实仓库覆盖）
 
     def test_keep_scripts_in_source_template(self, monkeypatch, mini_template: Path, tmp_path: Path):
@@ -323,6 +332,24 @@ class TestUpgrade:
         info = json.loads((target / np.SCAFFOLD_INFO_FILE).read_text(encoding="utf-8"))
         assert info["framework_pin"] == "0.2.0"
 
+    def test_upgrade_components_preserves_recorded(self, monkeypatch, mini_template: Path, tmp_path: Path):
+        """upgrade --components 只覆盖显式组件：未提及组件沿用项目记录，不重置为目录默认。"""
+        self._make_base_snapshot(mini_template)
+        monkeypatch.setattr(np, "PROJECT_ROOT", mini_template)
+        target = tmp_path / "generated"
+        # 生成时显式关闭 payment（非目录默认 memory）并记录
+        np.main(["new", "my-project", "--dir", str(target), "--components", "payment:off"])
+        info = json.loads((target / np.SCAFFOLD_INFO_FILE).read_text(encoding="utf-8"))
+        assert info["components"]["payment"] == "off"
+
+        # 升级时仅覆盖 cache -> redis：payment 必须保持 off，其余沿用记录
+        np._run_upgrade(np._derive_upgrade_args(
+            np._parse_args(["upgrade", str(target), "--components", "cache:redis"])
+        ))
+        info = json.loads((target / np.SCAFFOLD_INFO_FILE).read_text(encoding="utf-8"))
+        assert info["components"]["cache"] == "redis"
+        assert info["components"]["payment"] == "off"
+
     def test_upgrade_missing_scaffold_info(self, monkeypatch, mini_template: Path, tmp_path: Path):
         """非脚手架生成项目（缺 .scaffold-info.json）应报错。"""
         plain = tmp_path / "plain"
@@ -430,8 +457,8 @@ class TestComponentsCatalog:
     def test_render_capabilities(self):
         """能力装配清单（app.capabilities.enabled）：按组件选择映射、去重、未选不参与。"""
         comps = np.resolve_components("payment:memory,jwt:default,social:demo")
-        # 默认启用的 db/cache/storage/mq + payment/pay + jwt/social 同属 authn（去重）
-        assert np.render_capabilities(comps) == ["db", "cache", "storage", "mq", "pay", "authn"]
+        # 默认最小化（仅必选 db）+ 显式选择的 payment/jwt/social（pay / authn 同域去重）
+        assert np.render_capabilities(comps) == ["db", "pay", "authn"]
         comps = np.resolve_components("none")
         assert np.render_capabilities(comps) == ["db"]                  # 必选 db 默认启用
 
@@ -440,7 +467,7 @@ class TestComponentsCatalog:
         text = "app:\n  capabilities:\n    enabled: []\n  cache:\n    type: memory\n"
         comps = np.resolve_components("payment:wechat,jwt:default")
         updated = np.apply_capabilities_to_text(text, comps)
-        assert 'enabled: ["db", "cache", "storage", "mq", "pay", "authn"]' in updated
+        assert 'enabled: ["db", "pay", "authn"]' in updated
         # 未选择任何可映射组件（仅 db 必选）时仅保留 db
         comps = np.resolve_components("none")
         updated = np.apply_capabilities_to_text(text, comps)

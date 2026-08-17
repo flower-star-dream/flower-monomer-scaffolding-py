@@ -20,7 +20,7 @@ keywords = ["web", "backend", "fastapi", "scaffolding", "monolith"]
 #     （经 new 生成项目后，README 安装命令会按组件选择渲染 extras，如 cache=redis 需 [redis]、
 #     mq=rocketmq 需 [rocketmq]、registry/config=nacos 需 [nacos]、storage=minio 需 [storage]）
 #   方式二（本地开发，可选）：本机已 clone 框架仓库时，可用 editable 本地安装
-#     pip install -e "f:\baseProject\flower-web-infrastructure[mysql,redis,migrate]"
+#     pip install -e "<框架仓库本地路径>[mysql,redis,migrate]"
 # 说明：脚手架业务代码通过 `from web_infra import ...` 使用框架能力，
 #       框架为基础依赖（由上述命令安装），此处不再重复声明。
 # =====================================================================

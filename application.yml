@@ -37,7 +37,7 @@ app:
       # <<<COMPONENT:idempotency>>>
       idempotency:               # API 幂等键中间件（防重复提交，规范 §12.6；选择后启用）
         enabled: false           #   memory/redis/custom 选择均已启用；TTL 覆盖重试窗口
-        ttl_seconds: 86400       #   多实例需配 Redis 共享存储（app.cache.type=redis）
+        ttl_seconds: 86400       #   多实例需配 Redis 共享存储（application.yml 中 cache.type=redis）
       # <<</COMPONENT:idempotency>>>
       trace_id: {}
 
@@ -56,7 +56,7 @@ app:
       pool_size: 8
       max_overflow: 8
     sqlite:
-      path: ./data/app.db        # 切换 app.db.type=sqlite 时生效（无需外部服务）
+      path: ./data/app.db        # 切换 db.type=sqlite 时生效（无需外部服务）
   # <<</COMPONENT:db>>>
 
   # <<<COMPONENT:cache>>>
@@ -134,7 +134,7 @@ app:
 
   # <<<COMPONENT:config>>>
   # 配置中心（ConfigClientInterface / ConfigSourceInterface）：默认本地复合配置源；
-  # 生产接入 Nacos 配置中心复用 app.registry.nacos（加 config_enabled: true + data_id），
+  # 生产接入 Nacos 配置中心复用 registry.nacos（加 config_enabled: true + data_id），
   # 自定义实现见 src/<package>/spi/config_custom.py（需安装 nacos extras）。
   # <<</COMPONENT:config>>>
 
@@ -158,7 +158,7 @@ app:
   # <<</COMPONENT:mongo>>>
 
   # <<<COMPONENT:payment>>>
-  # 支付（app.payment）：memory（内存测试渠道，SPI 默认策略）/ wechat（微信支付 APIv3，生产）/
+  # 支付（payment）：memory（内存测试渠道，SPI 默认策略）/ wechat（微信支付 APIv3，生产）/
   # custom（自研 PaymentGateway / PaymentCallbackVerifier）
   payment:
     type: memory
@@ -181,7 +181,7 @@ app:
   # <<</COMPONENT:payment>>>
 
   # <<<COMPONENT:ai>>>
-  # AI 与大模型（默认不启用；选择后启用，配置模型清单 app.ai.models，api_key 仅存 env:VAR 引用，
+  # AI 与大模型（默认不启用；选择后启用，配置模型清单 ai.models，api_key 仅存 env:VAR 引用，
   # 真实密钥经环境变量注入，禁止明文落盘）
   ai:
     enabled: false

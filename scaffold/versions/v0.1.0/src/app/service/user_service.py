@@ -9,7 +9,7 @@
 """
 from typing import Any
 
-from web_infra import CommonErrorCode, PasswordEncoder, get_logger
+from web_infra import BizException, CommonErrorCode, PasswordEncoder, get_logger
 from web_infra.cache import CacheBackendInterface
 
 from app.constants.user_constant import UserConstant
@@ -42,7 +42,7 @@ class UserService:
         cache_key = UserConstant.USER_CACHE_KEY_TEMPLATE.format(user_id=user_id)
         # 空值占位命中：数据确实不存在，直接返回（不再直打 DB）
         if await self._cache.is_empty(cache_key):
-            raise CommonErrorCode.COMMON_NOT_FOUND.to_exception(message="用户不存在")
+            raise BizException(CommonErrorCode.COMMON_NOT_FOUND, message="用户不存在")
         cached = await self._cache.get(cache_key)
         if cached is not None:
             return UserVO.model_validate(cached)
@@ -51,7 +51,7 @@ class UserService:
         if user is None:
             # 数据不存在写空值占位（TTL 取 USER_CACHE_EMPTY_TTL_SECONDS），防恶意高频请求直打 DB
             await self._cache.set_empty(cache_key, ttl=UserConstant.USER_CACHE_EMPTY_TTL_SECONDS)
-            raise CommonErrorCode.COMMON_NOT_FOUND.to_exception(message="用户不存在")
+            raise BizException(CommonErrorCode.COMMON_NOT_FOUND, message="用户不存在")
         vo = self._to_vo(user)
         await self._cache.set(cache_key, vo.model_dump(mode="json"), ttl=UserConstant.USER_CACHE_TTL_SECONDS)
         return vo
@@ -75,7 +75,7 @@ class UserService:
         """
         existed = await self._repository.find_by_username(request.username)
         if existed is not None:
-            raise CommonErrorCode.COMMON_CONFLICT.to_exception(message="用户名已存在")
+            raise BizException(CommonErrorCode.COMMON_CONFLICT, message="用户名已存在")
 
         user = UserModel(
             username=request.username,
@@ -96,7 +96,7 @@ class UserService:
         """
         updated = await self._repository.update_status(user_id, status)
         if not updated:
-            raise CommonErrorCode.COMMON_NOT_FOUND.to_exception(message="用户不存在")
+            raise BizException(CommonErrorCode.COMMON_NOT_FOUND, message="用户不存在")
         await self._cache.delete(UserConstant.USER_CACHE_KEY_TEMPLATE.format(user_id=user_id))
         logger.info("user_status_updated user_id=%s status=%s", user_id, status)
 
