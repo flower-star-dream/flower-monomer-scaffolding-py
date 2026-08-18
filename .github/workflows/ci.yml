@@ -92,13 +92,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 拉取框架基础镜像（锁定框架正式版本 v1.0.0）
+      - name: 拉取框架基础镜像（锁定框架正式版本 1.0.0）
         # 业务镜像 Dockerfile 固定 FROM flower-web-infrastructure:latest（本地标签），
-        # 从 GHCR 拉取框架 v1.0.0 并打本地标签，使 Dockerfile 的 FROM 可解析；
-        # 框架镜像包需对本仓库授权拉取（包设置 "Manage Actions access"），否则改用带 read:packages 的 PAT
+        # 从 GHCR 拉取框架 1.0.0（SemVer 镜像 tag 不带 v，与 git tag v1.0.0 区分）并打本地标签，
+        # 使 Dockerfile 的 FROM 可解析；框架镜像包需对本仓库授权拉取（包设置 "Manage Actions access"），
+        # 否则改用带 read:packages 的 PAT
         run: |
-          docker pull ghcr.io/flower-star-dream/flower-web-infrastructure:v1.0.0
-          docker tag ghcr.io/flower-star-dream/flower-web-infrastructure:v1.0.0 flower-web-infrastructure:latest
+          docker pull ghcr.io/flower-star-dream/flower-web-infrastructure:1.0.0
+          docker tag ghcr.io/flower-star-dream/flower-web-infrastructure:1.0.0 flower-web-infrastructure:latest
 
       - name: 构建业务镜像
         run: docker build -t flower-monomer-scaffolding:ci .
