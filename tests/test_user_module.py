@@ -9,7 +9,7 @@
 import pytest
 
 from web_infra import BizException, CommonErrorCode, PasswordEncoder
-from web_infra.cache import MemoryCacheBackend
+from web_infra.capabilities.cache import MemoryCacheBackend
 
 from app.constants.user_constant import UserConstant
 from app.repository.user_repository import UserRepository

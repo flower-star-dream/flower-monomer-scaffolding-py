@@ -16,7 +16,7 @@ from sqlalchemy.pool import StaticPool
 import app.model  # noqa: F401
 from app.api.v1.user_controller import router as user_router
 from web_infra import create_app
-from web_infra.db import Base, MySQLDatabase
+from web_infra.capabilities.db import Base, MySQLDatabase
 
 _JWT_SECRET = "scaffolding-test-secret-0123456789"
 
