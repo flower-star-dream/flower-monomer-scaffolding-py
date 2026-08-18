@@ -45,11 +45,12 @@ jobs:
       - name: 检出脚手架
         uses: actions/checkout@v4
 
-      - name: 检出框架仓库（本地 editable 依赖方式）
+      - name: 检出框架仓库（本地 editable 依赖方式，锁定框架正式版本 v1.0.0）
         uses: actions/checkout@v4
         with:
           repository: flower-star-dream/flower-web-infrastructure
           path: flower-web-infrastructure
+          ref: v1.0.0
           # 框架仓库为私有时需配置 PAT（Secrets.FRAMEWORK_PAT，contents:read）并取消下方注释；
           # 仓库公开时无需 token
           # token: ${{ secrets.FRAMEWORK_PAT }}
@@ -91,13 +92,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 拉取框架基础镜像
-        # 业务镜像 Dockerfile 固定 FROM flower-web-infrastructure:latest，
-        # 从 GHCR 拉取框架镜像并打本地标签，使 Dockerfile 的 FROM 可解析；
+      - name: 拉取框架基础镜像（锁定框架正式版本 v1.0.0）
+        # 业务镜像 Dockerfile 固定 FROM flower-web-infrastructure:latest（本地标签），
+        # 从 GHCR 拉取框架 v1.0.0 并打本地标签，使 Dockerfile 的 FROM 可解析；
         # 框架镜像包需对本仓库授权拉取（包设置 "Manage Actions access"），否则改用带 read:packages 的 PAT
         run: |
-          docker pull ghcr.io/flower-star-dream/flower-web-infrastructure:latest
-          docker tag ghcr.io/flower-star-dream/flower-web-infrastructure:latest flower-web-infrastructure:latest
+          docker pull ghcr.io/flower-star-dream/flower-web-infrastructure:v1.0.0
+          docker tag ghcr.io/flower-star-dream/flower-web-infrastructure:v1.0.0 flower-web-infrastructure:latest
 
       - name: 构建业务镜像
         run: docker build -t flower-monomer-scaffolding:ci .
