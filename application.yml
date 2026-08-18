@@ -33,7 +33,7 @@ app:
         enabled: true            # 安全响应头（推荐启用）
       auth:
         enabled: false           # 统一鉴权中间件，需使用时改为 true 并配置签发密钥 JWT_SECRET_KEY
-        whitelist: ["/health", "/health/live", "/health/ready", "/metrics", "/docs", "/redoc", "/openapi.json"]
+        whitelist: ["/health", "/health/live", "/health/ready", "/metrics", "/capacity", "/docs", "/redoc", "/openapi.json"]
       # <<<COMPONENT:idempotency>>>
       idempotency:               # API 幂等键中间件（防重复提交，规范 §12.6；选择后启用）
         enabled: false           #   memory/redis/custom 选择均已启用；TTL 覆盖重试窗口
